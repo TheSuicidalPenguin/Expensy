@@ -324,9 +324,24 @@ export default function ExpenseForm({ onClose, onSaved, expenseId }: Props) {
               {/* Receipt */}
               <Field label="Receipt" required>
                 {existingReceiptId && !receiptFile && (
-                  <p className="text-xs text-gray-400 mb-1.5">
-                    ✓ Receipt already attached — upload a new file to replace it
-                  </p>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <p className="text-xs text-gray-400">✓ Receipt already attached</p>
+                    {existingExpense?.receiptUrl && (
+                      <a
+                        href={existingExpense.receiptUrl}
+                        download
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-500 transition-colors font-medium"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                        Download
+                      </a>
+                    )}
+                  </div>
                 )}
                 <input
                   type="file"

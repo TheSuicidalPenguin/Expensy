@@ -689,11 +689,16 @@ export const getExpenseById = query({
       })
     );
 
+    const receiptUrl = expense.receipt
+      ? await ctx.storage.getUrl(expense.receipt)
+      : null;
+
     return {
       ...expense,
       categoryName: category?.name ?? null,
       currencyCode: currency?.code ?? null,
       statusName: status?.name ?? null,
+      receiptUrl,
       history,
     };
   },
