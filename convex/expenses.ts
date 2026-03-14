@@ -565,19 +565,14 @@ export const getExpensesForReview = query({
 
     await requirePermission(ctx, userId, "VIEW_EXPENSES");
 
-    const [submittedStatus, rejectedStatus] = await Promise.all([
-      getStatusByName(ctx, "submitted"),
-      getStatusByName(ctx, "rejected"),
-    ]);
+    const submittedStatus = await getStatusByName(ctx, "submitted");
 
-    const [submittedExpenses, rejectedExpenses] = await Promise.all([
-      ctx.db.query("expenses").withIndex("by_statusId", (q) => q.eq("statusId", submittedStatus._id)).collect(),
-      ctx.db.query("expenses").withIndex("by_statusId", (q) => q.eq("statusId", rejectedStatus._id)).collect(),
-    ]);
+    const submittedExpenses = await ctx.db
+      .query("expenses")
+      .withIndex("by_statusId", (q) => q.eq("statusId", submittedStatus._id))
+      .collect();
 
-    let expenses = [...submittedExpenses, ...rejectedExpenses].filter(
-      (e) => e.userId !== userId
-    );
+    let expenses = submittedExpenses.filter((e) => e.userId !== userId);
 
     // Apply in-memory filters
     if (args.description) {
@@ -694,11 +689,16 @@ export const getExpenseById = query({
       })
     );
 
+    const receiptUrl = expense.receipt
+      ? await ctx.storage.getUrl(expense.receipt)
+      : null;
+
     return {
       ...expense,
       categoryName: category?.name ?? null,
       currencyCode: currency?.code ?? null,
       statusName: status?.name ?? null,
+      receiptUrl,
       history,
     };
   },

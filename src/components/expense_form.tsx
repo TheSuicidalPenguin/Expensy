@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { useCategories, useCurrencies } from "../hooks/use_lookup_data";
@@ -45,6 +45,15 @@ export default function ExpenseForm({ onClose, onSaved, expenseId }: Props) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
+
+  // Auto-select USD for new expenses once currencies load
+  useEffect(() => {
+    if (isEditMode || !currencies) return;
+    setCurrencyId((prev) => {
+      if (prev) return prev;
+      return currencies.find((c) => c.code === "USD")?._id ?? "";
+    });
+  }, [currencies, isEditMode]);
 
   // Pre-fill form when existing expense loads
   useEffect(() => {
@@ -304,22 +313,35 @@ export default function ExpenseForm({ onClose, onSaved, expenseId }: Props) {
 
               {/* Expense Date */}
               <Field label="Expense Date" required>
-                <input
-                  type="date"
+                <DatePicker
                   value={expenseDate}
                   max={new Date().toISOString().split("T")[0]}
-                  onChange={(e) => setExpenseDate(e.target.value)}
+                  onChange={setExpenseDate}
                   disabled={busy}
-                  className={inputClass}
                 />
               </Field>
 
               {/* Receipt */}
               <Field label="Receipt" required>
                 {existingReceiptId && !receiptFile && (
-                  <p className="text-xs text-gray-400 mb-1.5">
-                    ✓ Receipt already attached — upload a new file to replace it
-                  </p>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <p className="text-xs text-gray-400">✓ Receipt already attached</p>
+                    {existingExpense?.receiptUrl && (
+                      <a
+                        href={existingExpense.receiptUrl}
+                        download
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-500 transition-colors font-medium"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                        Download
+                      </a>
+                    )}
+                  </div>
                 )}
                 <input
                   type="file"
@@ -439,6 +461,55 @@ function StatusHistory({ history }: { history: HistoryEntry[] }) {
         </li>
       ))}
     </ol>
+  );
+}
+
+function DatePicker({
+  value,
+  max,
+  onChange,
+  disabled,
+}: {
+  value: string;
+  max?: string;
+  onChange: (v: string) => void;
+  disabled?: boolean;
+}) {
+  const ref = useRef<HTMLInputElement>(null);
+
+  const formatted = value
+    ? new Date(value + "T00:00:00").toLocaleDateString(undefined, {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      })
+    : "";
+
+  return (
+    <div
+      onClick={() => !disabled && ref.current?.showPicker()}
+      className={`w-full flex items-center justify-between rounded-lg border border-gray-200 px-3 py-2 bg-white transition select-none ${
+        disabled ? "opacity-50 cursor-not-allowed bg-gray-50" : "cursor-pointer hover:border-gray-400"
+      }`}
+    >
+      <span className={`text-sm ${formatted ? "text-gray-800" : "text-gray-400"}`}>
+        {formatted || "Pick a date"}
+      </span>
+      <svg className="w-4 h-4 text-gray-400 shrink-0 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+          d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+      </svg>
+      <input
+        ref={ref}
+        type="date"
+        value={value}
+        max={max}
+        onChange={(e) => onChange(e.target.value)}
+        disabled={disabled}
+        className="absolute opacity-0 pointer-events-none w-0 h-0"
+        tabIndex={-1}
+      />
+    </div>
   );
 }
 

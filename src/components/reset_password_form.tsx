@@ -50,6 +50,10 @@ export default function ResetPasswordForm() {
 
   async function handleRequestReset(e: FormEvent) {
     e.preventDefault();
+    if (!email.trim()) {
+      setError("Email address is required.");
+      return;
+    }
     setError(null);
     setIsLoading(true);
     try {
@@ -80,6 +84,10 @@ export default function ResetPasswordForm() {
     e.preventDefault();
     setError(null);
 
+    if (!code.trim()) {
+      setError("Please enter the reset code sent to your email.");
+      return;
+    }
     if (!isPasswordValid(newPassword)) {
       setError("Please meet all password requirements.");
       return;

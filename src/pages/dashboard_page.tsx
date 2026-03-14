@@ -1,7 +1,6 @@
 import { useState, Component, type ReactNode } from "react";
 import { useQuery } from "convex/react";
-import { useAuthActions } from "@convex-dev/auth/react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { api } from "../../convex/_generated/api";
 import ExpenseForm from "../components/expense_form";
 
@@ -27,7 +26,6 @@ class StatsErrorBoundary extends Component<
  * a quick-add action, and navigation cards for available routes.
  */
 export default function DashboardPage() {
-  const { signOut } = useAuthActions();
   const me = useQuery(api.users.getMe);
   const roleData = useQuery(api.roles.getMyRole);
 
@@ -56,12 +54,6 @@ export default function DashboardPage() {
               </span>
             )}
           </div>
-          <button
-            onClick={() => void signOut()}
-            className="mt-1 text-sm font-medium text-red-500 hover:text-red-600 transition-colors"
-          >
-            Sign out
-          </button>
         </div>
 
         {/* Stat cards + pending review banner — isolated so errors don't blank the page */}
@@ -80,30 +72,6 @@ export default function DashboardPage() {
           </button>
         )}
 
-        {/* Navigation cards */}
-        {roleData === undefined ? (
-          <div className="space-y-3 animate-pulse">
-            <div className="h-20 bg-white rounded-2xl border border-gray-200" />
-            <div className="h-20 bg-white rounded-2xl border border-gray-200" />
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {canViewOwn && (
-              <NavCard
-                to="/my-expenses"
-                title="My Expenses"
-                description="View and manage your submitted and draft expenses"
-              />
-            )}
-            {canReview && (
-              <NavCard
-                to="/review"
-                title="Review Expenses"
-                description="Approve or reject expenses submitted by employees"
-              />
-            )}
-          </div>
-        )}
       </div>
 
       {/* Add Expense modal */}
@@ -157,18 +125,18 @@ function DashboardStats() {
       )}
 
       {stats !== undefined && stats.pendingReview !== null && stats.pendingReview > 0 && (
-        <div className="flex items-center justify-between bg-amber-50 border border-amber-200 rounded-2xl px-5 py-4">
+        <Link
+          to="/review"
+          className="flex items-center justify-between bg-amber-50 border border-amber-200 rounded-2xl px-5 py-4 hover:bg-amber-100 transition-colors"
+        >
           <p className="text-sm font-medium text-amber-800">
             {stats.pendingReview}{" "}
             {stats.pendingReview === 1 ? "expense" : "expenses"} pending your review
           </p>
-          <Link
-            to="/review"
-            className="text-sm font-semibold text-amber-700 hover:text-amber-900 transition-colors whitespace-nowrap ml-4"
-          >
+          <span className="text-sm font-semibold text-amber-700 whitespace-nowrap ml-4">
             Review &rarr;
-          </Link>
-        </div>
+          </span>
+        </Link>
       )}
     </>
   );
@@ -211,16 +179,18 @@ function StatCard({
   count: number;
   color: StatColor;
 }) {
+  const navigate = useNavigate();
   const c = statColorMap[color];
   return (
-    <div
-      className={`rounded-2xl border px-4 py-4 flex flex-col gap-1 ${c.bg}`}
+    <button
+      onClick={() => navigate("/my-expenses")}
+      className={`rounded-2xl border px-4 py-4 flex flex-col gap-1 text-left w-full hover:opacity-80 transition-opacity ${c.bg}`}
     >
       <span className={`text-xs font-semibold uppercase tracking-wide ${c.text}`}>
         {label}
       </span>
       <span className={`text-3xl font-bold ${c.count}`}>{count}</span>
-    </div>
+    </button>
   );
 }
 
