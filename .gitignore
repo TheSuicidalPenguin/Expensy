@@ -1,0 +1,34 @@
+# Node modules
+node_modules/
+
+# Convex generated files
+convex/_generated/
+
+# Build output
+/dist/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Env files
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+
+# Misc
+*.log
+*.tmp
+
+# Vite cache
+.vite
+
+# VS Code
+.vscode/
