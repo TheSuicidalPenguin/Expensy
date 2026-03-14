@@ -1,0 +1,19 @@
+import { convexAuth } from "@convex-dev/auth/server";
+import { Password } from "@convex-dev/auth/providers/Password";
+
+/**
+ * Convex Auth configuration.
+ *
+ * Exports the core auth helpers used throughout the backend:
+ *   - `auth`          – bound to ctx; use `auth.getUserId(ctx)` in queries/mutations
+ *   - `signIn`        – HTTP handler for the sign-in endpoint
+ *   - `signOut`       – HTTP handler for the sign-out endpoint
+ *   - `store`         – HTTP handler for session storage (cookies / tokens)
+ *   - `isAuthenticated` – boolean helper for HTTP routes
+ *
+ * Only the Password provider is enabled. No OAuth providers are configured.
+ * Users are pre-created by an admin; there is no self-signup flow.
+ */
+export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
+  providers: [Password],
+});
