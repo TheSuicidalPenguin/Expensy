@@ -1,34 +1,41 @@
 import { useQuery } from "convex/react";
 import { useAuthActions } from "@convex-dev/auth/react";
+import { Link } from "react-router-dom";
 import { api } from "../../convex/_generated/api";
 
 /**
  * DashboardPage
  *
  * Protected page — only rendered for authenticated users (App.tsx enforces this).
- *
- * Immediately calls the `users:getMe` protected query via `useQuery` to confirm
- * that the session token is forwarded correctly and the backend resolves it to a
- * valid user record. This serves as the end-to-end auth token validation proof.
- *
- * States:
- *   Loading  – query is in flight (undefined); skeleton rows shown.
- *   Success  – backend returned the user document; fields rendered in a table.
- *
- * Note: because this page is always inside <Authenticated>, `getMe` will only
- * run once the ConvexAuthProvider has confirmed the session. The query should
- * never throw "Unauthorized" here under normal circumstances.
+ * Shows navigation cards for the user's available actions based on their role.
  */
 export default function DashboardPage() {
   const { signOut } = useAuthActions();
   const me = useQuery(api.users.getMe);
+  const roleData = useQuery(api.roles.getMyRole);
+
+  const permissions = roleData?.permissions ?? [];
+  const canViewOwn = permissions.includes("VIEW_OWN_EXPENSES");
+  const canReview = permissions.includes("VIEW_EXPENSES");
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-sm border border-gray-200 px-8 py-8">
+    <div className="min-h-screen bg-gray-50 px-4 py-8">
+      <div className="max-w-2xl mx-auto">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-xl font-semibold text-gray-900">Dashboard</h1>
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-xl font-semibold text-gray-900">Dashboard</h1>
+            {me && (
+              <p className="text-sm text-gray-400 mt-0.5">
+                {me.name ?? me.email}
+                {roleData?.role && (
+                  <span className="ml-2 capitalize inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                    {roleData.role}
+                  </span>
+                )}
+              </p>
+            )}
+          </div>
           <button
             onClick={() => void signOut()}
             className="text-sm font-medium text-red-500 hover:text-red-600 transition-colors"
@@ -37,33 +44,28 @@ export default function DashboardPage() {
           </button>
         </div>
 
-        {/* Protected API result */}
-        {me === undefined ? (
-          /* ── Loading ──────────────────────────────────────────────── */
+        {/* Loading skeleton */}
+        {roleData === undefined ? (
           <div className="space-y-3 animate-pulse">
-            <div className="h-4 bg-gray-100 rounded w-1/3" />
-            <div className="h-4 bg-gray-100 rounded w-2/3" />
-            <div className="h-4 bg-gray-100 rounded w-1/2" />
+            <div className="h-20 bg-white rounded-2xl border border-gray-200" />
+            <div className="h-20 bg-white rounded-2xl border border-gray-200" />
           </div>
         ) : (
-          /* ── Success — backend accepted token ─────────────────────── */
-          <div className="space-y-5">
-            {/* Badge */}
-            <div className="flex items-center gap-2">
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
-                ✓ Token valid
-              </span>
-              <span className="text-xs text-gray-400">
-                Protected API responded successfully
-              </span>
-            </div>
-
-            {/* User fields */}
-            <div className="border-t border-gray-100 pt-4 space-y-3">
-              <Row label="User ID" value={me._id} mono />
-              {me.name !== null && <Row label="Name" value={me.name} />}
-              {me.email !== null && <Row label="Email" value={me.email} />}
-            </div>
+          <div className="space-y-3">
+            {canViewOwn && (
+              <NavCard
+                to="/my-expenses"
+                title="My Expenses"
+                description="View and manage your submitted and draft expenses"
+              />
+            )}
+            {canReview && (
+              <NavCard
+                to="/review"
+                title="Review Expenses"
+                description="Approve or reject expenses submitted by employees"
+              />
+            )}
           </div>
         )}
       </div>
@@ -71,24 +73,22 @@ export default function DashboardPage() {
   );
 }
 
-/** Small helper for displaying a labeled field row. */
-function Row({
-  label,
-  value,
-  mono = false,
+function NavCard({
+  to,
+  title,
+  description,
 }: {
-  label: string;
-  value: string;
-  mono?: boolean;
+  to: string;
+  title: string;
+  description: string;
 }) {
   return (
-    <div className="flex items-center justify-between text-sm gap-4">
-      <span className="text-gray-500 font-medium shrink-0">{label}</span>
-      <span
-        className={`text-gray-800 truncate ${mono ? "font-mono text-xs" : ""}`}
-      >
-        {value}
-      </span>
-    </div>
+    <Link
+      to={to}
+      className="block bg-white rounded-2xl border border-gray-200 shadow-sm px-6 py-5 hover:border-gray-300 hover:shadow transition-all"
+    >
+      <p className="text-sm font-semibold text-gray-900">{title}</p>
+      <p className="text-sm text-gray-400 mt-0.5">{description}</p>
+    </Link>
   );
 }

@@ -19,7 +19,7 @@ import { v } from "convex/values";
  * Role / permission tables:
  *   - roles             – named roles (employee, manager)
  *   - permissions       – named permission strings (ADD_EXPENSE, etc.)
- *   - role_permissions  – many-to-many join: which permissions belong to each role
+ *   - rolePermissions  – many-to-many join: which permissions belong to each role
  */
 export default defineSchema({
   ...authTables,
@@ -48,8 +48,69 @@ export default defineSchema({
    * Maps each role to its set of permissions.
    * Indexed by roleId for efficient permission lookups.
    */
-  role_permissions: defineTable({
+  rolePermissions: defineTable({
     roleId: v.id("roles"),
     permissionId: v.id("permissions"),
   }).index("by_roleId", ["roleId"]),
+
+  // ---------------------------------------------------------------------------
+  // Expense lookup tables
+  // ---------------------------------------------------------------------------
+
+  expenseCategories: defineTable({
+    name: v.string(),
+  }).index("by_name", ["name"]),
+
+  currencies: defineTable({
+    code: v.string(),
+    name: v.string(),
+  }).index("by_code", ["code"]),
+
+  // ---------------------------------------------------------------------------
+  // Expense status / workflow tables
+  // ---------------------------------------------------------------------------
+
+  expenseStatus: defineTable({
+    name: v.string(),
+  }).index("by_name", ["name"]),
+
+  statusTransition: defineTable({
+    fromStatusId: v.id("expenseStatus"),
+    toStatusId: v.id("expenseStatus"),
+  }).index("by_fromStatus", ["fromStatusId"]),
+
+  expenseStatusTransitionPermission: defineTable({
+    transitionId: v.id("statusTransition"),
+    permissionId: v.id("permissions"),
+  }).index("by_transitionId", ["transitionId"]),
+
+  entityStatusHistory: defineTable({
+    expenseId: v.id("expenses"),
+    fromStatusId: v.union(v.id("expenseStatus"), v.null()),
+    toStatusId: v.id("expenseStatus"),
+    actorId: v.id("users"),
+    timestamp: v.number(),
+    note: v.optional(v.string()),
+  }).index("by_expenseId", ["expenseId"]),
+
+  // ---------------------------------------------------------------------------
+  // Expenses
+  // ---------------------------------------------------------------------------
+
+  expenses: defineTable({
+    userId: v.id("users"),
+    description: v.string(),
+    receipt: v.optional(v.id("_storage")),
+    categoryId: v.optional(v.id("expenseCategories")),
+    otherCategory: v.optional(v.string()),
+    expenseDate: v.optional(v.number()),
+    submissionDate: v.optional(v.number()),
+    amount: v.optional(v.number()),
+    currencyId: v.optional(v.id("currencies")),
+    statusId: v.id("expenseStatus"),
+    rejectionNote: v.optional(v.string()),
+  })
+    .index("by_userId", ["userId"])
+    .index("by_statusId", ["statusId"])
+    .index("by_userId_statusId", ["userId", "statusId"]),
 });

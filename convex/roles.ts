@@ -21,7 +21,7 @@ export async function getUserPermissions(
   if (!user?.roleId) return [];
 
   const rolePerms = await ctx.db
-    .query("role_permissions")
+    .query("rolePermissions")
     .withIndex("by_roleId", (q) => q.eq("roleId", user.roleId!))
     .collect();
 
@@ -136,13 +136,13 @@ export const _linkRolePermission = internalMutation({
   },
   handler: async (ctx, { roleId, permissionId }) => {
     const existing = await ctx.db
-      .query("role_permissions")
+      .query("rolePermissions")
       .withIndex("by_roleId", (q) => q.eq("roleId", roleId))
       .filter((q) => q.eq(q.field("permissionId"), permissionId))
       .unique();
 
     if (existing) return;
 
-    await ctx.db.insert("role_permissions", { roleId, permissionId });
+    await ctx.db.insert("rolePermissions", { roleId, permissionId });
   },
 });

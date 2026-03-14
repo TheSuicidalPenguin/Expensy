@@ -48,6 +48,12 @@ const SEED_USERS = [
     password: "Password-123",
     role: "employee" as const,
   },
+  {
+    email: "frankthemanager@airdev.co",
+    name: "Frank Manager",
+    password: "Password-123",
+    role: "manager" as const,
+  },
 ] as const;
 
 export const seedAll = internalAction({
@@ -92,6 +98,9 @@ export const seedAll = internalAction({
       });
     }
 
-    console.log("[seed] Done seeding roles, permissions, and users.");
+    // 5. Seed expense lookups (statuses, transitions, permissions, categories, currencies)
+    await ctx.runMutation(internal.expenses._seedExpenseLookups, {});
+
+    console.log("[seed] Done seeding roles, permissions, users, and expense lookups.");
   },
 });

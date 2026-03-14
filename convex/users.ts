@@ -72,7 +72,14 @@ export const _createUser = internalMutation({
       .unique();
 
     if (existing !== null) {
-      console.log(`[seed] Skipping ${email} — account already exists`);
+      // Account exists — still patch roleId in case this user was created before
+      // roles were implemented or their role has changed.
+      if (roleId !== undefined) {
+        await ctx.db.patch(existing.userId, { roleId });
+        console.log(`[seed] Updated roleId for existing user: ${email}`);
+      } else {
+        console.log(`[seed] Skipping ${email} — account already exists`);
+      }
       return;
     }
 

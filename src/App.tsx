@@ -2,6 +2,8 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Authenticated, Unauthenticated, AuthLoading } from "convex/react";
 import LoginPage from "./pages/login_page";
 import DashboardPage from "./pages/dashboard_page";
+import MyExpensesPage from "./pages/my_expenses_page";
+import ReviewExpensesPage from "./pages/review_expenses_page";
 
 /**
  * Root application router.
@@ -60,6 +62,30 @@ export default function App() {
               <Unauthenticated>
                 <Navigate to="/login" replace />
               </Unauthenticated>
+            </>
+          }
+        />
+
+        {/* ── /my-expenses ─────────────────────────────────────────────── */}
+        <Route
+          path="/my-expenses"
+          element={
+            <>
+              <AuthLoading><LoadingScreen /></AuthLoading>
+              <Authenticated><MyExpensesPage /></Authenticated>
+              <Unauthenticated><Navigate to="/login" replace /></Unauthenticated>
+            </>
+          }
+        />
+
+        {/* ── /review ──────────────────────────────────────────────────── */}
+        <Route
+          path="/review"
+          element={
+            <>
+              <AuthLoading><LoadingScreen /></AuthLoading>
+              <Authenticated><ReviewExpensesPage /></Authenticated>
+              <Unauthenticated><Navigate to="/login" replace /></Unauthenticated>
             </>
           }
         />
