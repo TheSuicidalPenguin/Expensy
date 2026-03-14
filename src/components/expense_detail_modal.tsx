@@ -142,7 +142,7 @@ export default function ExpenseDetailModal({ expenseId, onClose }: Props) {
                 <DetailRow
                   label="Amount"
                   value={expense.amount !== undefined && expense.currencyCode
-                    ? `${expense.currencyCode} ${expense.amount.toFixed(2)}`
+                    ? formatAmount(expense.amount, expense.currencyCode)
                     : "—"}
                 />
                 <DetailRow
@@ -163,11 +163,17 @@ export default function ExpenseDetailModal({ expenseId, onClose }: Props) {
               {expense.receiptUrl && (
                 <div className="flex items-center justify-between text-sm gap-4">
                   <span className="text-gray-400 font-medium shrink-0">Receipt</span>
-                  <a
-                    href={expense.receiptUrl}
-                    download="receipt"
-                    target="_blank"
-                    rel="noreferrer"
+                  <button
+                    onClick={async () => {
+                      const res = await fetch(expense.receiptUrl!);
+                      const blob = await res.blob();
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement("a");
+                      a.href = url;
+                      a.download = "receipt";
+                      a.click();
+                      URL.revokeObjectURL(url);
+                    }}
                     className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-gray-200 bg-gray-50 hover:bg-gray-100 active:bg-gray-200 transition-colors max-w-[200px]"
                   >
                     {/* File icon */}
@@ -181,7 +187,7 @@ export default function ExpenseDetailModal({ expenseId, onClose }: Props) {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                         d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                     </svg>
-                  </a>
+                  </button>
                 </div>
               )}
 
@@ -199,7 +205,7 @@ export default function ExpenseDetailModal({ expenseId, onClose }: Props) {
                             : <span className="font-medium capitalize">{entry.toStatusName}</span>}
                         </p>
                         <p className="text-xs text-gray-400 mt-0.5">
-                          {entry.actorName ?? "Unknown"} · {new Date(entry.timestamp).toLocaleString(undefined, { timeZone: "UTC", month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                          {entry.actorName ?? "Unknown"} · {new Date(entry.timestamp).toLocaleString(undefined, { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" })}
                         </p>
                         {entry.note && <p className="text-xs text-gray-500 mt-1 italic">"{entry.note}"</p>}
                       </li>
@@ -273,6 +279,13 @@ export default function ExpenseDetailModal({ expenseId, onClose }: Props) {
       </div>
     </div>
   );
+}
+
+function formatAmount(amount: number, currencyCode: string) {
+  if (currencyCode === "USD") {
+    return `${currencyCode} ${new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount)}`;
+  }
+  return `${currencyCode} ${amount.toFixed(2)}`;
 }
 
 function DetailRow({ label, value }: { label: string; value: string }) {

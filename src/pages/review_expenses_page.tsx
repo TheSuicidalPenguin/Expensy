@@ -79,7 +79,7 @@ export default function ReviewExpensesPage() {
                     <td className={td + " text-gray-500"}>{expense.categoryName ?? "—"}</td>
                     <td className={td + " text-gray-700"}>
                       {expense.amount !== undefined && expense.currencyCode
-                        ? `${expense.currencyCode} ${expense.amount.toFixed(2)}`
+                        ? formatAmount(expense.amount, expense.currencyCode)
                         : "—"}
                     </td>
                     <td className={td + " text-gray-500"}>
@@ -108,6 +108,13 @@ export default function ReviewExpensesPage() {
       )}
     </div>
   );
+}
+
+function formatAmount(amount: number, currencyCode: string) {
+  if (currencyCode === "USD") {
+    return `${currencyCode} ${new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount)}`;
+  }
+  return `${currencyCode} ${amount.toFixed(2)}`;
 }
 
 const th = "px-5 py-3 text-xs font-medium text-gray-400 uppercase tracking-wide";

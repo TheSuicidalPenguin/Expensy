@@ -19,12 +19,12 @@ function isPasswordValid(password: string) {
   return PASSWORD_RULES.every((r) => r.test(password));
 }
 
-function friendlyError(err: unknown): string {
+function friendlyError(err: unknown, step: "request" | "verify"): string {
   const msg = err instanceof Error ? err.message : "";
-  if (msg.includes("OTPNotFound") || msg.includes("InvalidOTP") || msg.includes("InvalidCode"))
-    return "Invalid or expired code. Please try again.";
   if (msg.includes("RateLimited"))
     return "Too many attempts. Please wait and try again.";
+  if (step === "verify")
+    return "Invalid or expired code. Please try again.";
   if (msg.includes("AccountNotFound") || msg.includes("NotFound"))
     return "No account found with that email.";
   return "Something went wrong. Please try again.";
@@ -60,7 +60,7 @@ export default function ResetPasswordForm() {
       await signIn("password", { email, flow: "reset" });
       setStep("verify");
     } catch (err) {
-      setError(friendlyError(err));
+      setError(friendlyError(err, "request"));
     } finally {
       setIsLoading(false);
     }
@@ -74,7 +74,7 @@ export default function ResetPasswordForm() {
       await signIn("password", { email, flow: "reset" });
       setResendMessage("A new code has been sent to your email.");
     } catch (err) {
-      setError(friendlyError(err));
+      setError(friendlyError(err, "request"));
     } finally {
       setIsLoading(false);
     }
@@ -104,7 +104,7 @@ export default function ResetPasswordForm() {
       await signOut();
       navigate("/login");
     } catch (err) {
-      setError(friendlyError(err));
+      setError(friendlyError(err, "verify"));
     } finally {
       setIsLoading(false);
     }

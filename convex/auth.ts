@@ -6,6 +6,9 @@ import { Email } from "@convex-dev/auth/providers/Email";
  * OTP-based password reset email sender using Resend.
  */
 const PasswordResetOTP = Email({
+  maxAge: 5 * 60, // expires in 5 minutes
+  generateVerificationToken: () =>
+    String(Math.floor(100000 + Math.random() * 900000)), // 6-digit numeric code
   sendVerificationRequest: async ({ identifier: email, token }) => {
     const apiKey = process.env.RESEND_API_KEY;
     const from = process.env.RESEND_FROM;
@@ -26,7 +29,7 @@ const PasswordResetOTP = Email({
         from: process.env.RESEND_FROM,
         to: email,
         subject: "Expensy - Password Reset Request",
-        text: `Your password reset code is: ${token}`,
+        text: `Your Expensy password reset code is: ${token}\n\nThis code is valid for 5 minutes. If you did not request this, you can ignore this email.`,
         html: `
 <!doctype html>
 <html>
@@ -50,9 +53,9 @@ const PasswordResetOTP = Email({
               <td style="padding:28px;">
                 <h1 style="margin:0 0 12px;font-size:20px;line-height:1.3;">Use this code to reset your password</h1>
                 <p style="margin:0 0 20px;font-size:14px;line-height:1.6;color:#334155;">
-                  Enter this one-time code in the app. It expires shortly for your security.
+                  Enter this 6-digit code in the app. It expires in <strong>5 minutes</strong>.
                 </p>
-                <div style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:10px;padding:16px;text-align:center;font-size:24px;letter-spacing:4px;font-weight:700;color:#0f172a;">
+                <div style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:10px;padding:16px;text-align:center;font-size:32px;letter-spacing:8px;font-weight:700;color:#0f172a;">
                   ${token}
                 </div>
                 <p style="margin:20px 0 0;font-size:12px;line-height:1.6;color:#64748b;">
