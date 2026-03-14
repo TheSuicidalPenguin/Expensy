@@ -28,6 +28,7 @@ export default function ExpenseForm({ onClose, onSaved, expenseId }: Props) {
   const createExpense = useMutation(api.expenses.createExpense);
   const updateExpense = useMutation(api.expenses.updateExpense);
   const submitExpense = useMutation(api.expenses.submitExpense);
+  const deleteExpenseMutation = useMutation(api.expenses.deleteExpense);
 
   const [initialized, setInitialized] = useState(!isEditMode);
   const [description, setDescription] = useState("");
@@ -42,6 +43,7 @@ export default function ExpenseForm({ onClose, onSaved, expenseId }: Props) {
 
   const [isSaving, setIsSaving] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
   // Pre-fill form when existing expense loads
@@ -184,9 +186,23 @@ export default function ExpenseForm({ onClose, onSaved, expenseId }: Props) {
     }
   }
 
-  const busy = isSaving || isSubmitting;
+  async function handleDelete() {
+    if (!expenseId) return;
+    setIsDeleting(true);
+    try {
+      await deleteExpenseMutation({ expenseId });
+      onSaved();
+    } catch (err: unknown) {
+      setValidationErrors([err instanceof Error ? err.message : "Could not delete expense."]);
+    } finally {
+      setIsDeleting(false);
+    }
+  }
+
+  const busy = isSaving || isSubmitting || isDeleting;
   const loading = isEditMode && !initialized;
   const blockedByFileError = receiptError !== null;
+  const isDraft = existingExpense?.statusName === "draft";
 
   return (
     <div
@@ -346,7 +362,16 @@ export default function ExpenseForm({ onClose, onSaved, expenseId }: Props) {
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-end gap-3">
+        <div className="px-6 py-4 border-t border-gray-100 relative flex items-center justify-center gap-3">
+          {isEditMode && isDraft && (
+            <button
+              onClick={handleDelete}
+              disabled={busy}
+              className="absolute left-6 px-4 py-2 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+            >
+              {isDeleting ? "Deleting…" : "Delete"}
+            </button>
+          )}
           <button
             onClick={handleSaveDraft}
             disabled={busy || loading || blockedByFileError}
@@ -399,10 +424,13 @@ function StatusHistory({ history }: { history: HistoryEntry[] }) {
           </p>
           <p className="text-xs text-gray-400 mt-0.5">
             {entry.actorName ?? "Unknown"} ·{" "}
-            {new Date(entry.timestamp).toLocaleDateString(undefined, {
+            {new Date(entry.timestamp).toLocaleString(undefined, {
+              timeZone: "UTC",
               month: "short",
               day: "numeric",
               year: "numeric",
+              hour: "2-digit",
+              minute: "2-digit",
             })}
           </p>
           {entry.note && (

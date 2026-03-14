@@ -1,8 +1,8 @@
-import { mutation, query, internalMutation } from "./_generated/server";
+import { mutation, query } from "./_generated/server";
 import { ConvexError, v } from "convex/values";
 import type { Id, Doc } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
-import { auth } from "./auth";
+import { getAuthUserId } from "@convex-dev/auth/server";
 import { getUserPermissions, requirePermission } from "./roles";
 
 // ---------------------------------------------------------------------------
@@ -165,7 +165,7 @@ async function validateReceipt(ctx: MutationCtx, storageId: Id<"_storage">): Pro
 export const generateUploadUrl = mutation({
   args: {},
   handler: async (ctx) => {
-    const userId = await auth.getUserId(ctx);
+    const userId = await getAuthUserId(ctx);
     if (!userId) throw new ConvexError("Unauthorized");
     return await ctx.storage.generateUploadUrl();
   },
@@ -186,7 +186,7 @@ export const createExpense = mutation({
     currencyId: v.optional(v.id("currencies")),
   },
   handler: async (ctx, args) => {
-    const userId = await auth.getUserId(ctx);
+    const userId = await getAuthUserId(ctx);
     if (!userId) throw new ConvexError("Unauthorized");
 
     await requirePermission(ctx, userId, "ADD_EXPENSE");
@@ -242,7 +242,7 @@ export const updateExpense = mutation({
     currencyId: v.optional(v.id("currencies")),
   },
   handler: async (ctx, args) => {
-    const userId = await auth.getUserId(ctx);
+    const userId = await getAuthUserId(ctx);
     if (!userId) throw new ConvexError("Unauthorized");
 
     await requirePermission(ctx, userId, "ADD_EXPENSE");
@@ -281,6 +281,19 @@ export const updateExpense = mutation({
 
     await ctx.db.patch(args.expenseId, patch);
 
+    // If saving a rejected expense, transition it back to draft and record history
+    if (currentStatus?.name === "rejected") {
+      const draftStatus = await getStatusByName(ctx, "draft");
+      await ctx.db.insert("entityStatusHistory", {
+        expenseId: args.expenseId,
+        fromStatusId: expense.statusId,
+        toStatusId: draftStatus._id,
+        actorId: userId,
+        timestamp: Date.now(),
+      });
+      await ctx.db.patch(args.expenseId, { statusId: draftStatus._id, rejectionNote: undefined });
+    }
+
     return args.expenseId;
   },
 });
@@ -296,7 +309,7 @@ export const submitExpense = mutation({
     expenseId: v.id("expenses"),
   },
   handler: async (ctx, { expenseId }) => {
-    const userId = await auth.getUserId(ctx);
+    const userId = await getAuthUserId(ctx);
     if (!userId) throw new ConvexError("Unauthorized");
 
     await requirePermission(ctx, userId, "ADD_EXPENSE");
@@ -336,7 +349,7 @@ export const approveExpense = mutation({
     expenseId: v.id("expenses"),
   },
   handler: async (ctx, { expenseId }) => {
-    const userId = await auth.getUserId(ctx);
+    const userId = await getAuthUserId(ctx);
     if (!userId) throw new ConvexError("Unauthorized");
 
     await requirePermission(ctx, userId, "REVIEW_EXPENSES");
@@ -367,7 +380,7 @@ export const rejectExpense = mutation({
     note: v.string(),
   },
   handler: async (ctx, { expenseId, note }) => {
-    const userId = await auth.getUserId(ctx);
+    const userId = await getAuthUserId(ctx);
     if (!userId) throw new ConvexError("Unauthorized");
 
     await requirePermission(ctx, userId, "REVIEW_EXPENSES");
@@ -387,6 +400,41 @@ export const rejectExpense = mutation({
   },
 });
 
+/**
+ * Deletes a draft expense and all of its status history.
+ * Only the owner can delete, and only while the expense is in draft status.
+ */
+export const deleteExpense = mutation({
+  args: { expenseId: v.id("expenses") },
+  handler: async (ctx, { expenseId }) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new ConvexError("Unauthorized");
+
+    const expense = await ctx.db.get(expenseId);
+    if (!expense) throw new ConvexError("Expense not found.");
+
+    if (expense.userId !== userId) {
+      throw new ConvexError("Forbidden: You can only delete your own expenses.");
+    }
+
+    const currentStatus = await ctx.db.get(expense.statusId);
+    if (currentStatus?.name !== "draft") {
+      throw new ConvexError("Only draft expenses can be deleted.");
+    }
+
+    // Delete all history records
+    const history = await ctx.db
+      .query("entityStatusHistory")
+      .withIndex("by_expenseId", (q) => q.eq("expenseId", expenseId))
+      .collect();
+    for (const record of history) {
+      await ctx.db.delete(record._id);
+    }
+
+    await ctx.db.delete(expenseId);
+  },
+});
+
 // ---------------------------------------------------------------------------
 // Queries
 // ---------------------------------------------------------------------------
@@ -398,7 +446,7 @@ export const rejectExpense = mutation({
 export const getCurrencies = query({
   args: {},
   handler: async (ctx) => {
-    const userId = await auth.getUserId(ctx);
+    const userId = await getAuthUserId(ctx);
     if (!userId) throw new ConvexError("Unauthorized");
 
     return await ctx.db.query("currencies").collect();
@@ -412,7 +460,7 @@ export const getCurrencies = query({
 export const getCategories = query({
   args: {},
   handler: async (ctx) => {
-    const userId = await auth.getUserId(ctx);
+    const userId = await getAuthUserId(ctx);
     if (!userId) throw new ConvexError("Unauthorized");
 
     return await ctx.db.query("expenseCategories").collect();
@@ -433,7 +481,7 @@ export const getMyExpenses = query({
     submissionDateTo: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const userId = await auth.getUserId(ctx);
+    const userId = await getAuthUserId(ctx);
     if (!userId) throw new ConvexError("Unauthorized");
 
     await requirePermission(ctx, userId, "VIEW_OWN_EXPENSES");
@@ -512,19 +560,24 @@ export const getExpensesForReview = query({
     submissionDateTo: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const userId = await auth.getUserId(ctx);
+    const userId = await getAuthUserId(ctx);
     if (!userId) throw new ConvexError("Unauthorized");
 
     await requirePermission(ctx, userId, "VIEW_EXPENSES");
 
-    const draftStatus = await getStatusByName(ctx, "draft");
+    const [submittedStatus, rejectedStatus] = await Promise.all([
+      getStatusByName(ctx, "submitted"),
+      getStatusByName(ctx, "rejected"),
+    ]);
 
-    let expenses = (await ctx.db.query("expenses").collect()).filter(
-      (e) => e.statusId !== draftStatus._id
+    const [submittedExpenses, rejectedExpenses] = await Promise.all([
+      ctx.db.query("expenses").withIndex("by_statusId", (q) => q.eq("statusId", submittedStatus._id)).collect(),
+      ctx.db.query("expenses").withIndex("by_statusId", (q) => q.eq("statusId", rejectedStatus._id)).collect(),
+    ]);
+
+    let expenses = [...submittedExpenses, ...rejectedExpenses].filter(
+      (e) => e.userId !== userId
     );
-
-    // Exclude the manager's own expenses
-    expenses = expenses.filter((e) => e.userId !== userId);
 
     // Apply in-memory filters
     if (args.description) {
@@ -598,7 +651,7 @@ export const getExpenseById = query({
     expenseId: v.id("expenses"),
   },
   handler: async (ctx, { expenseId }) => {
-    const userId = await auth.getUserId(ctx);
+    const userId = await getAuthUserId(ctx);
     if (!userId) throw new ConvexError("Unauthorized");
 
     const expense = await ctx.db.get(expenseId);
@@ -661,7 +714,7 @@ export const getAvailableTransitions = query({
     expenseId: v.id("expenses"),
   },
   handler: async (ctx, { expenseId }) => {
-    const userId = await auth.getUserId(ctx);
+    const userId = await getAuthUserId(ctx);
     if (!userId) throw new ConvexError("Unauthorized");
 
     const expense = await ctx.db.get(expenseId);
@@ -731,182 +784,80 @@ export const getAvailableTransitions = query({
   },
 });
 
-// ---------------------------------------------------------------------------
-// Seed internal mutation
-// ---------------------------------------------------------------------------
-
 /**
- * Seeds all lookup data required for the expense workflow:
- * - expenseStatus records
- * - statusTransition records
- * - expenseStatusTransitionPermission links
- * - expenseCategories
- * - currencies
+ * getDashboardStats
  *
- * Safe to re-run — existing records are skipped (upsert pattern).
+ * Returns per-status counts for the current user's own expenses, plus
+ * the number of expenses pending review (for managers only).
+ *
+ * Uses the by_userId_statusId compound index for efficient per-status counts.
  */
-export const _seedExpenseLookups = internalMutation({
+export const getDashboardStats = query({
   args: {},
   handler: async (ctx) => {
-    // 1. Upsert expense statuses
-    const statusNames = ["draft", "submitted", "approved", "rejected"] as const;
-    const statusIds: Record<string, Id<"expenseStatus">> = {};
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new ConvexError("Unauthorized");
 
-    for (const name of statusNames) {
-      const existing = await ctx.db
-        .query("expenseStatus")
-        .withIndex("by_name", (q) => q.eq("name", name))
-        .unique();
+    const permissions = await getUserPermissions(ctx, userId);
 
-      if (existing) {
-        console.log(`[seed] expenseStatus "${name}" already exists — skipping`);
-        statusIds[name] = existing._id;
-      } else {
-        statusIds[name] = await ctx.db.insert("expenseStatus", { name });
-        console.log(`[seed] Created expenseStatus: ${name}`);
-      }
-    }
+    // Resolve all four status documents in parallel
+    const [draftStatus, submittedStatus, approvedStatus, rejectedStatus] =
+      await Promise.all([
+        getStatusByName(ctx, "draft"),
+        getStatusByName(ctx, "submitted"),
+        getStatusByName(ctx, "approved"),
+        getStatusByName(ctx, "rejected"),
+      ]);
 
-    // 2. Upsert status transitions
-    const transitionDefs: Array<[string, string]> = [
-      ["draft", "submitted"],
-      ["submitted", "approved"],
-      ["submitted", "rejected"],
-      ["rejected", "submitted"],
-    ];
-    const transitionIds: Record<string, Id<"statusTransition">> = {};
+    // Count own expenses per status using the compound index
+    const [draftRows, submittedRows, approvedRows, rejectedRows] =
+      await Promise.all([
+        ctx.db
+          .query("expenses")
+          .withIndex("by_userId_statusId", (q) =>
+            q.eq("userId", userId).eq("statusId", draftStatus._id)
+          )
+          .collect(),
+        ctx.db
+          .query("expenses")
+          .withIndex("by_userId_statusId", (q) =>
+            q.eq("userId", userId).eq("statusId", submittedStatus._id)
+          )
+          .collect(),
+        ctx.db
+          .query("expenses")
+          .withIndex("by_userId_statusId", (q) =>
+            q.eq("userId", userId).eq("statusId", approvedStatus._id)
+          )
+          .collect(),
+        ctx.db
+          .query("expenses")
+          .withIndex("by_userId_statusId", (q) =>
+            q.eq("userId", userId).eq("statusId", rejectedStatus._id)
+          )
+          .collect(),
+      ]);
 
-    for (const [fromName, toName] of transitionDefs) {
-      const fromId = statusIds[fromName];
-      const toId = statusIds[toName];
-      const key = `${fromName}→${toName}`;
-
-      const existing = await ctx.db
-        .query("statusTransition")
-        .withIndex("by_fromStatus", (q) => q.eq("fromStatusId", fromId))
-        .filter((q) => q.eq(q.field("toStatusId"), toId))
-        .unique();
-
-      if (existing) {
-        console.log(`[seed] statusTransition "${key}" already exists — skipping`);
-        transitionIds[key] = existing._id;
-      } else {
-        transitionIds[key] = await ctx.db.insert("statusTransition", {
-          fromStatusId: fromId,
-          toStatusId: toId,
-        });
-        console.log(`[seed] Created statusTransition: ${key}`);
-      }
-    }
-
-    // 3. Get permission IDs
-    const addExpensePerm = await ctx.db
-      .query("permissions")
-      .withIndex("by_name", (q) => q.eq("name", "ADD_EXPENSE"))
-      .unique();
-    const reviewExpensesPerm = await ctx.db
-      .query("permissions")
-      .withIndex("by_name", (q) => q.eq("name", "REVIEW_EXPENSES"))
-      .unique();
-
-    if (!addExpensePerm || !reviewExpensesPerm) {
-      throw new ConvexError(
-        "Permissions not found. Run seedAll first to create roles and permissions."
-      );
-    }
-
-    // 4. Upsert transition permission links
-    const transitionPermLinks: Array<[string, Id<"permissions">]> = [
-      ["draft→submitted", addExpensePerm._id],
-      ["submitted→approved", reviewExpensesPerm._id],
-      ["submitted→rejected", reviewExpensesPerm._id],
-      ["rejected→submitted", addExpensePerm._id],
-    ];
-
-    let transitionPermCount = 0;
-    for (const [transitionKey, permissionId] of transitionPermLinks) {
-      const transitionId = transitionIds[transitionKey];
-      if (!transitionId) continue;
-
-      const existing = await ctx.db
-        .query("expenseStatusTransitionPermission")
-        .withIndex("by_transitionId", (q) =>
-          q.eq("transitionId", transitionId)
+    // Pending review: submitted + resubmitted expenses from other users
+    // (managers only; null if the user lacks VIEW_EXPENSES permission)
+    let pendingReview: number | null = null;
+    if (permissions.includes("VIEW_EXPENSES")) {
+      // Count submitted expenses not owned by this manager
+      const submittedOthers = await ctx.db
+        .query("expenses")
+        .withIndex("by_statusId", (q) =>
+          q.eq("statusId", submittedStatus._id)
         )
-        .filter((q) => q.eq(q.field("permissionId"), permissionId))
-        .unique();
-
-      if (existing) {
-        console.log(
-          `[seed] transition permission "${transitionKey}" already exists — skipping`
-        );
-      } else {
-        await ctx.db.insert("expenseStatusTransitionPermission", {
-          transitionId,
-          permissionId,
-        });
-        console.log(
-          `[seed] Created transition permission: ${transitionKey}`
-        );
-        transitionPermCount++;
-      }
+        .collect();
+      pendingReview = submittedOthers.filter((e) => e.userId !== userId).length;
     }
-
-    // 5. Upsert expense categories
-    const categoryNames = [
-      "Travel",
-      "Meals & Entertainment",
-      "Office Supplies",
-      "Software & Subscriptions",
-      "Hardware & Equipment",
-      "Marketing",
-      "Training & Education",
-      "Other",
-    ];
-
-    let categoryCount = 0;
-    for (const name of categoryNames) {
-      const existing = await ctx.db
-        .query("expenseCategories")
-        .withIndex("by_name", (q) => q.eq("name", name))
-        .unique();
-
-      if (existing) {
-        console.log(`[seed] expense_category "${name}" already exists — skipping`);
-      } else {
-        await ctx.db.insert("expenseCategories", { name });
-        console.log(`[seed] Created expense_category: ${name}`);
-        categoryCount++;
-      }
-    }
-
-    // 6. Upsert currencies
-    const currencyDefs = [{ code: "USD", name: "US Dollar" }];
-
-    let currencyCount = 0;
-    for (const { code, name } of currencyDefs) {
-      const existing = await ctx.db
-        .query("currencies")
-        .withIndex("by_code", (q) => q.eq("code", code))
-        .unique();
-
-      if (existing) {
-        console.log(`[seed] currency "${code}" already exists — skipping`);
-      } else {
-        await ctx.db.insert("currencies", { code, name });
-        console.log(`[seed] Created currency: ${code}`);
-        currencyCount++;
-      }
-    }
-
-    console.log("[seed] Expense lookups seeding complete.");
 
     return {
-      statuses: statusNames.length,
-      transitions: transitionDefs.length,
-      transitionPermissions: transitionPermCount,
-      categories: categoryCount,
-      currencies: currencyCount,
+      myDraft: draftRows.length,
+      mySubmitted: submittedRows.length,
+      myApproved: approvedRows.length,
+      myRejected: rejectedRows.length,
+      pendingReview,
     };
   },
 });

@@ -1,6 +1,7 @@
-import { internalMutation, query } from "./_generated/server";
-import { ConvexError, v } from "convex/values";
-import { auth } from "./auth";
+import { query } from "./_generated/server";
+import { ConvexError } from "convex/values";
+import type { Doc } from "./_generated/dataModel";
+import { getAuthUserId } from "@convex-dev/auth/server";
 
 /**
  * Protected query: returns the currently authenticated user's profile.
@@ -20,7 +21,7 @@ import { auth } from "./auth";
 export const getMe = query({
   args: {},
   handler: async (ctx) => {
-    const userId = await auth.getUserId(ctx);
+    const userId = await getAuthUserId(ctx);
 
     if (userId === null) {
       throw new ConvexError(
@@ -28,7 +29,7 @@ export const getMe = query({
       );
     }
 
-    const user = await ctx.db.get(userId);
+    const user = await ctx.db.get(userId) as Doc<"users"> | null;
 
     if (!user) {
       throw new ConvexError(
@@ -45,58 +46,3 @@ export const getMe = query({
   },
 });
 
-/**
- * Internal mutation: inserts a user + password account row.
- *
- * Called exclusively by the `seed:seedUsers` action after it has produced
- * the Scrypt hash. Skips silently if the provider account already exists so
- * the seed is safe to re-run.
- *
- * @param email           The user's email address (also the providerAccountId)
- * @param name            Display name stored on the users row
- * @param hashedPassword  Scrypt hash produced by `new Scrypt().hash(password)`
- */
-export const _createUser = internalMutation({
-  args: {
-    email: v.string(),
-    name: v.string(),
-    hashedPassword: v.string(),
-    roleId: v.optional(v.id("roles")),
-  },
-  handler: async (ctx, { email, name, hashedPassword, roleId }) => {
-    const existing = await ctx.db
-      .query("authAccounts")
-      .withIndex("providerAndAccountId", (q) =>
-        q.eq("provider", "password").eq("providerAccountId", email)
-      )
-      .unique();
-
-    if (existing !== null) {
-      // Account exists — still patch roleId in case this user was created before
-      // roles were implemented or their role has changed.
-      if (roleId !== undefined) {
-        await ctx.db.patch(existing.userId, { roleId });
-        console.log(`[seed] Updated roleId for existing user: ${email}`);
-      } else {
-        console.log(`[seed] Skipping ${email} — account already exists`);
-      }
-      return;
-    }
-
-    const userId = await ctx.db.insert("users", {
-      email,
-      name,
-      emailVerificationTime: Date.now(),
-      ...(roleId !== undefined ? { roleId } : {}),
-    });
-
-    await ctx.db.insert("authAccounts", {
-      userId,
-      provider: "password",
-      providerAccountId: email,
-      secret: hashedPassword,
-    });
-
-    console.log(`[seed] Created user: ${email}`);
-  },
-});

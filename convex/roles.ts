@@ -1,8 +1,9 @@
-import { internalMutation, query } from "./_generated/server";
-import { ConvexError, v } from "convex/values";
-import { Id } from "./_generated/dataModel";
-import { auth } from "./auth";
+import { query } from "./_generated/server";
+import { ConvexError } from "convex/values";
+import type { Doc } from "./_generated/dataModel";
+import { getAuthUserId } from "@convex-dev/auth/server";
 import type { QueryCtx } from "./_generated/server";
+import type { Id } from "./_generated/dataModel";
 
 // ---------------------------------------------------------------------------
 // Internal helpers (plain async functions – not RPCs)
@@ -60,13 +61,13 @@ export async function requirePermission(
 export const getMyRole = query({
   args: {},
   handler: async (ctx) => {
-    const userId = await auth.getUserId(ctx);
+    const userId = await getAuthUserId(ctx);
     if (!userId) throw new ConvexError("Unauthorized");
 
-    const user = await ctx.db.get(userId);
+    const user = await ctx.db.get(userId) as Doc<"users"> | null;
     if (!user) throw new ConvexError("User record not found.");
 
-    const role = user.roleId ? await ctx.db.get(user.roleId) : null;
+    const role = user.roleId ? await ctx.db.get(user.roleId) as Doc<"roles"> | null : null;
     const permissions = await getUserPermissions(ctx, userId);
 
     return {
@@ -76,73 +77,3 @@ export const getMyRole = query({
   },
 });
 
-// ---------------------------------------------------------------------------
-// Internal mutations — used by the seed action
-// ---------------------------------------------------------------------------
-
-/**
- * Inserts a role if it does not already exist.
- * Returns the roleId (existing or newly created).
- */
-export const _upsertRole = internalMutation({
-  args: { name: v.string() },
-  handler: async (ctx, { name }) => {
-    const existing = await ctx.db
-      .query("roles")
-      .withIndex("by_name", (q) => q.eq("name", name))
-      .unique();
-
-    if (existing) {
-      console.log(`[seed] Role "${name}" already exists — skipping`);
-      return existing._id;
-    }
-
-    const id = await ctx.db.insert("roles", { name });
-    console.log(`[seed] Created role: ${name}`);
-    return id;
-  },
-});
-
-/**
- * Inserts a permission if it does not already exist.
- * Returns the permissionId (existing or newly created).
- */
-export const _upsertPermission = internalMutation({
-  args: { name: v.string() },
-  handler: async (ctx, { name }) => {
-    const existing = await ctx.db
-      .query("permissions")
-      .withIndex("by_name", (q) => q.eq("name", name))
-      .unique();
-
-    if (existing) {
-      console.log(`[seed] Permission "${name}" already exists — skipping`);
-      return existing._id;
-    }
-
-    const id = await ctx.db.insert("permissions", { name });
-    console.log(`[seed] Created permission: ${name}`);
-    return id;
-  },
-});
-
-/**
- * Links a role to a permission. Safe to call multiple times (idempotent).
- */
-export const _linkRolePermission = internalMutation({
-  args: {
-    roleId: v.id("roles"),
-    permissionId: v.id("permissions"),
-  },
-  handler: async (ctx, { roleId, permissionId }) => {
-    const existing = await ctx.db
-      .query("rolePermissions")
-      .withIndex("by_roleId", (q) => q.eq("roleId", roleId))
-      .filter((q) => q.eq(q.field("permissionId"), permissionId))
-      .unique();
-
-    if (existing) return;
-
-    await ctx.db.insert("rolePermissions", { roleId, permissionId });
-  },
-});
