@@ -70,10 +70,10 @@ export default function ReviewExpensesPage() {
                         : "—"}
                     </td>
                     <td className={td + " text-gray-500"}>
-                      {expense.expenseDate ? new Date(expense.expenseDate).toLocaleDateString() : "—"}
+                      {expense.expenseDate ? new Date(expense.expenseDate).toLocaleDateString(undefined, { timeZone: "UTC", month: "short", day: "numeric", year: "numeric" }) : "—"}
                     </td>
                     <td className={td + " text-gray-500"}>
-                      {expense.submissionDate ? new Date(expense.submissionDate).toLocaleDateString() : "—"}
+                      {expense.submissionDate ? new Date(expense.submissionDate).toLocaleDateString(undefined, { timeZone: "UTC", month: "short", day: "numeric", year: "numeric" }) : "—"}
                     </td>
                     <td className={td}>
                       {expense.statusName && (

@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Authenticated, Unauthenticated, AuthLoading } from "convex/react";
 import LoginPage from "./pages/login_page";
+import ResetPasswordPage from "./pages/reset_password_page";
 import DashboardPage from "./pages/dashboard_page";
 import MyExpensesPage from "./pages/my_expenses_page";
 import ReviewExpensesPage from "./pages/review_expenses_page";
@@ -86,6 +87,18 @@ export default function App() {
               <AuthLoading><LoadingScreen /></AuthLoading>
               <Authenticated><ReviewExpensesPage /></Authenticated>
               <Unauthenticated><Navigate to="/login" replace /></Unauthenticated>
+            </>
+          }
+        />
+
+        {/* ── /reset-password ──────────────────────────────────────────── */}
+        <Route
+          path="/reset-password"
+          element={
+            <>
+              <AuthLoading><LoadingScreen /></AuthLoading>
+              <Unauthenticated><ResetPasswordPage /></Unauthenticated>
+              <Authenticated><Navigate to="/dashboard" replace /></Authenticated>
             </>
           }
         />

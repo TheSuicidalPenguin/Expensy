@@ -148,13 +148,13 @@ export default function ExpenseDetailModal({ expenseId, onClose }: Props) {
                 <DetailRow
                   label="Expense Date"
                   value={expense.expenseDate
-                    ? new Date(expense.expenseDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })
+                    ? new Date(expense.expenseDate).toLocaleDateString(undefined, { timeZone: "UTC", month: "short", day: "numeric", year: "numeric" })
                     : "—"}
                 />
                 {expense.submissionDate && (
                   <DetailRow
                     label="Submitted on"
-                    value={new Date(expense.submissionDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
+                    value={new Date(expense.submissionDate).toLocaleDateString(undefined, { timeZone: "UTC", month: "short", day: "numeric", year: "numeric" })}
                   />
                 )}
               </div>
@@ -173,7 +173,7 @@ export default function ExpenseDetailModal({ expenseId, onClose }: Props) {
                             : <span className="font-medium capitalize">{entry.toStatusName}</span>}
                         </p>
                         <p className="text-xs text-gray-400 mt-0.5">
-                          {entry.actorName ?? "Unknown"} · {new Date(entry.timestamp).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
+                          {entry.actorName ?? "Unknown"} · {new Date(entry.timestamp).toLocaleString(undefined, { timeZone: "UTC", month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" })}
                         </p>
                         {entry.note && <p className="text-xs text-gray-500 mt-1 italic">"{entry.note}"</p>}
                       </li>
