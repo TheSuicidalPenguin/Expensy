@@ -5,6 +5,7 @@ import type { Id } from "../../convex/_generated/dataModel";
 export type ExpenseFilters = {
   description?: string;
   categoryId?: Id<"expenseCategories">;
+  statusName?: string;
   submitterName?: string;
   expenseDateFrom?: number;
   expenseDateTo?: number;
@@ -20,6 +21,7 @@ export function useMyExpenses(filters: ExpenseFilters = {}) {
   return useQuery(api.expenses.getMyExpenses, {
     description: filters.description,
     categoryId: filters.categoryId,
+    statusName: filters.statusName,
     expenseDateFrom: filters.expenseDateFrom,
     expenseDateTo: filters.expenseDateTo,
     submissionDateFrom: filters.submissionDateFrom,

@@ -42,7 +42,7 @@ export default function ReviewExpensesPage() {
           </div>
         </div>
 
-        <ExpenseFilters filters={filters} onChange={setFilters} showSubmitterFilter />
+        <ExpenseFilters filters={filters} onChange={setFilters} showSubmitterFilter showStatusFilter={false} />
 
         {/* Table */}
         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">

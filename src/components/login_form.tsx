@@ -4,7 +4,7 @@ import { useAuthActions } from "@convex-dev/auth/react";
 
 function friendlyError(err: unknown): string {
   const msg = err instanceof Error ? err.message : "";
-  if (msg.includes("InvalidAccountId") || msg.includes("InvalidSecret") || msg.includes("InvalidPassword"))
+  if (msg.includes("InvalidAccountId") || msg.includes("InvalidSecret") || msg.includes("InvalidPassword") || msg.includes("AccountNotFound") || msg.includes("NotFound"))
     return "Invalid email or password.";
   if (msg.includes("RateLimited"))
     return "Too many attempts. Please wait and try again.";

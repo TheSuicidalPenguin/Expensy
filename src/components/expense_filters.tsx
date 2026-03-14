@@ -5,6 +5,7 @@ import type { Id } from "../../convex/_generated/dataModel";
 export interface FilterState {
   description: string;
   categoryId: Id<"expenseCategories"> | "";
+  statusName: string;
   submitterName: string;
   expenseDateFrom: string;
   expenseDateTo: string;
@@ -15,6 +16,7 @@ export interface FilterState {
 export const EMPTY_FILTERS: FilterState = {
   description: "",
   categoryId: "",
+  statusName: "",
   submitterName: "",
   expenseDateFrom: "",
   expenseDateTo: "",
@@ -22,14 +24,22 @@ export const EMPTY_FILTERS: FilterState = {
   submissionDateTo: "",
 };
 
+const STATUS_OPTIONS = [
+  { value: "draft", label: "Draft" },
+  { value: "submitted", label: "Submitted" },
+  { value: "approved", label: "Approved" },
+  { value: "rejected", label: "Rejected" },
+];
+
 interface Props {
   filters: FilterState;
   onChange: (filters: FilterState) => void;
   showSubmissionDate?: boolean;
   showSubmitterFilter?: boolean;
+  showStatusFilter?: boolean;
 }
 
-export default function ExpenseFilters({ filters, onChange, showSubmissionDate = true, showSubmitterFilter = false }: Props) {
+export default function ExpenseFilters({ filters, onChange, showSubmissionDate = true, showSubmitterFilter = false, showStatusFilter = true }: Props) {
   const categories = useCategories();
 
   function set<K extends keyof FilterState>(key: K, value: FilterState[K]) {
@@ -82,6 +92,23 @@ export default function ExpenseFilters({ filters, onChange, showSubmissionDate =
           </select>
         </div>
 
+        {/* Status */}
+        {showStatusFilter && (
+          <div>
+            <label className="block text-xs font-medium text-gray-400 mb-1">Status</label>
+            <select
+              value={filters.statusName}
+              onChange={(e) => set("statusName", e.target.value)}
+              className={inputClass}
+            >
+              <option value="">All statuses</option>
+              {STATUS_OPTIONS.map((s) => (
+                <option key={s.value} value={s.value}>{s.label}</option>
+              ))}
+            </select>
+          </div>
+        )}
+
         {/* Expense date range */}
         <div>
           <label className="block text-xs font-medium text-gray-400 mb-1">Expense Date</label>
@@ -124,6 +151,7 @@ export function toHookFilters(f: FilterState) {
   return {
     description: f.description || undefined,
     categoryId: f.categoryId || undefined,
+    statusName: f.statusName || undefined,
     submitterName: f.submitterName || undefined,
     expenseDateFrom: f.expenseDateFrom ? new Date(f.expenseDateFrom).getTime() : undefined,
     expenseDateTo: f.expenseDateTo ? new Date(f.expenseDateTo + "T23:59:59").getTime() : undefined,
