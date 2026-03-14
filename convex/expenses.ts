@@ -454,6 +454,20 @@ export const getCurrencies = query({
 });
 
 /**
+ * Returns all available expense statuses.
+ * Requires authentication.
+ */
+export const getExpenseStatuses = query({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new ConvexError("Unauthorized");
+
+    return await ctx.db.query("expenseStatus").collect();
+  },
+});
+
+/**
  * Returns all available expense categories.
  * Requires authentication.
  */

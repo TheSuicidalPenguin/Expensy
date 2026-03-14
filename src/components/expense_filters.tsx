@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import { useCategories } from "../hooks/use_lookup_data";
+import { useCategories, useExpenseStatuses } from "../hooks/use_lookup_data";
 import type { Id } from "../../convex/_generated/dataModel";
 
 export interface FilterState {
@@ -24,12 +24,6 @@ export const EMPTY_FILTERS: FilterState = {
   submissionDateTo: "",
 };
 
-const STATUS_OPTIONS = [
-  { value: "draft", label: "Draft" },
-  { value: "submitted", label: "Submitted" },
-  { value: "approved", label: "Approved" },
-  { value: "rejected", label: "Rejected" },
-];
 
 interface Props {
   filters: FilterState;
@@ -41,6 +35,7 @@ interface Props {
 
 export default function ExpenseFilters({ filters, onChange, showSubmissionDate = true, showSubmitterFilter = false, showStatusFilter = true }: Props) {
   const categories = useCategories();
+  const statuses = useExpenseStatuses();
 
   function set<K extends keyof FilterState>(key: K, value: FilterState[K]) {
     onChange({ ...filters, [key]: value });
@@ -102,8 +97,8 @@ export default function ExpenseFilters({ filters, onChange, showSubmissionDate =
               className={inputClass}
             >
               <option value="">All statuses</option>
-              {STATUS_OPTIONS.map((s) => (
-                <option key={s.value} value={s.value}>{s.label}</option>
+              {statuses?.map((s) => (
+                <option key={s._id} value={s.name} className="capitalize">{s.name.charAt(0).toUpperCase() + s.name.slice(1)}</option>
               ))}
             </select>
           </div>
