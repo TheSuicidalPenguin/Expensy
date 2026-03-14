@@ -113,7 +113,7 @@ export default function ExpenseForm({ onClose, onSaved, expenseId }: Props) {
   function validateForSubmit(): string[] {
     const errors: string[] = [];
     if (!description.trim()) errors.push("Description is required.");
-    if (!categoryId) errors.push("Category is required.");
+if (!categoryId) errors.push("Category is required.");
     if (isOther && !otherCategory.trim()) errors.push("Please specify the category.");
     const cents = parseAmountToCents(amount);
     if (cents === null || cents <= 0) errors.push("Amount must be greater than 0.");
@@ -296,11 +296,13 @@ export default function ExpenseForm({ onClose, onSaved, expenseId }: Props) {
               <div className="grid grid-cols-2 gap-3">
                 <Field label="Amount" required>
                   <input
-                    type="number"
-                    min="0"
-                    step="0.01"
+                    type="text"
+                    inputMode="decimal"
                     value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      if (v === "" || /^\d*\.?\d*$/.test(v)) setAmount(v);
+                    }}
                     placeholder="0.00"
                     disabled={busy}
                     className={inputClass}
