@@ -11,7 +11,7 @@ interface Props {
   expenseId?: Id<"expenses">;
 }
 
-const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp", "image/bmp", "image/tiff"];
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 
 export default function ExpenseForm({ onClose, onSaved, expenseId }: Props) {
@@ -66,7 +66,7 @@ export default function ExpenseForm({ onClose, onSaved, expenseId }: Props) {
     setCurrencyId((existingExpense.currencyId as Id<"currencies"> | undefined) ?? "");
     setExpenseDate(
       existingExpense.expenseDate
-        ? new Date(existingExpense.expenseDate).toISOString().split("T")[0]
+        ? new Date(existingExpense.expenseDate).toLocaleDateString("en-CA")
         : ""
     );
     setExistingReceiptId(existingExpense.receipt as Id<"_storage"> | undefined);
@@ -315,7 +315,7 @@ export default function ExpenseForm({ onClose, onSaved, expenseId }: Props) {
               <Field label="Expense Date" required>
                 <DatePicker
                   value={expenseDate}
-                  max={new Date().toISOString().split("T")[0]}
+                  max={new Date().toLocaleDateString("en-CA")}
                   onChange={setExpenseDate}
                   disabled={busy}
                 />
@@ -327,11 +327,18 @@ export default function ExpenseForm({ onClose, onSaved, expenseId }: Props) {
                   <div className="flex items-center justify-between mb-1.5">
                     <p className="text-xs text-gray-400">✓ Receipt already attached</p>
                     {existingExpense?.receiptUrl && (
-                      <a
-                        href={existingExpense.receiptUrl}
-                        download
-                        target="_blank"
-                        rel="noreferrer"
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          const res = await fetch(existingExpense.receiptUrl!);
+                          const blob = await res.blob();
+                          const url = URL.createObjectURL(blob);
+                          const a = document.createElement("a");
+                          a.href = url;
+                          a.download = "receipt";
+                          a.click();
+                          URL.revokeObjectURL(url);
+                        }}
                         className="inline-flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-500 transition-colors font-medium"
                       >
                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -339,7 +346,7 @@ export default function ExpenseForm({ onClose, onSaved, expenseId }: Props) {
                             d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                         </svg>
                         Download
-                      </a>
+                      </button>
                     )}
                   </div>
                 )}
@@ -447,7 +454,6 @@ function StatusHistory({ history }: { history: HistoryEntry[] }) {
           <p className="text-xs text-gray-400 mt-0.5">
             {entry.actorName ?? "Unknown"} ·{" "}
             {new Date(entry.timestamp).toLocaleString(undefined, {
-              timeZone: "UTC",
               month: "short",
               day: "numeric",
               year: "numeric",

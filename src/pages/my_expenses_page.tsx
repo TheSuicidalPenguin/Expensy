@@ -83,10 +83,10 @@ export default function MyExpensesPage() {
                         : "—"}
                     </td>
                     <td className={td + " text-gray-500"}>
-                      {expense.expenseDate ? new Date(expense.expenseDate).toLocaleDateString(undefined, { timeZone: "UTC", month: "short", day: "numeric", year: "numeric" }) : "—"}
+                      {expense.expenseDate ? new Date(expense.expenseDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) : "—"}
                     </td>
                     <td className={td + " text-gray-500"}>
-                      {expense.submissionDate ? new Date(expense.submissionDate).toLocaleDateString(undefined, { timeZone: "UTC", month: "short", day: "numeric", year: "numeric" }) : "—"}
+                      {expense.submissionDate ? new Date(expense.submissionDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) : "—"}
                     </td>
                     <td className={td}>
                       {expense.statusName && (

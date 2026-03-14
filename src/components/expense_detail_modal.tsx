@@ -148,13 +148,13 @@ export default function ExpenseDetailModal({ expenseId, onClose }: Props) {
                 <DetailRow
                   label="Expense Date"
                   value={expense.expenseDate
-                    ? new Date(expense.expenseDate).toLocaleDateString(undefined, { timeZone: "UTC", month: "short", day: "numeric", year: "numeric" })
+                    ? new Date(expense.expenseDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })
                     : "—"}
                 />
                 {expense.submissionDate && (
                   <DetailRow
                     label="Submitted on"
-                    value={new Date(expense.submissionDate).toLocaleDateString(undefined, { timeZone: "UTC", month: "short", day: "numeric", year: "numeric" })}
+                    value={new Date(expense.submissionDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
                   />
                 )}
               </div>
