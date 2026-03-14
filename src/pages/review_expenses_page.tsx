@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Link, Navigate } from "react-router-dom";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
-import { useExpensesForReview } from "../hooks/use_expenses";
 import ExpenseDetailModal from "../components/expense_detail_modal";
 import ExpenseFilters, { EMPTY_FILTERS, toHookFilters, type FilterState } from "../components/expense_filters";
 import type { Id } from "../../convex/_generated/dataModel";
@@ -18,13 +17,18 @@ export default function ReviewExpensesPage() {
   const [filters, setFilters] = useState<FilterState>(EMPTY_FILTERS);
   const [viewingExpenseId, setViewingExpenseId] = useState<Id<"expenses"> | null>(null);
 
-  // Still loading — don't render yet
+  const canReview = roleData?.permissions.includes("VIEW_EXPENSES") ?? false;
+  const hookFilters = toHookFilters(filters);
+  const expenses = useQuery(
+    api.expenses.getExpensesForReview,
+    canReview ? hookFilters : "skip"
+  );
+
+  // Still loading
   if (roleData === undefined) return null;
 
   // No permission — redirect to dashboard
-  if (!roleData.permissions.includes("VIEW_EXPENSES")) {
-    return <Navigate to="/dashboard" replace />;
-  }
+  if (!canReview) return <Navigate to="/dashboard" replace />;
 
   return (
     <div className="min-h-screen bg-gray-50 px-4 py-8">

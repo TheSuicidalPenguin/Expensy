@@ -87,6 +87,27 @@ npm run dev
 
 If you need to re-seed, you can re-run step 3 any time.
 
+## Environment Variables
+Create a `.env.local` file with the following values (comments explain usage):
+```
+# Convex deployment used by `npx convex dev`
+CONVEX_DEPLOYMENT=dev:your-deployment-name
+
+# Convex data URL (server + client runtime)
+CONVEX_URL=https://your-deployment.convex.cloud
+
+# Convex site URL (auth / OIDC discovery)
+CONVEX_SITE_URL=https://your-deployment.convex.site
+
+# Exposed to the Vite browser bundle (must use VITE_ prefix)
+VITE_CONVEX_URL=https://your-deployment.convex.cloud
+
+# Server-only email settings for password reset (Convex env vars)
+RESEND_API_KEY=your_resend_api_key
+RESEND_FROM=Expensy <no-reply@yourdomain.com>
+
+```
+
 ## Why This Architecture
 This setup keeps business rules explicit and data-driven:
 - **Permission checks** are centralized and reusable.
