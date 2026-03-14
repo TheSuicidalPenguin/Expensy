@@ -19,15 +19,11 @@ function isPasswordValid(password: string) {
   return PASSWORD_RULES.every((r) => r.test(password));
 }
 
-function friendlyError(err: unknown, step: "request" | "verify"): string {
+function friendlyError(err: unknown): string {
   const msg = err instanceof Error ? err.message : "";
   if (msg.includes("RateLimited"))
     return "Too many attempts. Please wait and try again.";
-  if (step === "verify")
-    return "Invalid or expired code. Please try again.";
-  if (msg.includes("AccountNotFound") || msg.includes("NotFound"))
-    return "No account found with that email.";
-  return "Something went wrong. Please try again.";
+  return "Invalid or expired code. Please try again.";
 }
 
 export default function ResetPasswordForm() {
@@ -58,12 +54,18 @@ export default function ResetPasswordForm() {
     setIsLoading(true);
     try {
       await signIn("password", { email, flow: "reset" });
-      setStep("verify");
     } catch (err) {
-      setError(friendlyError(err, "request"));
+      const msg = err instanceof Error ? err.message : "";
+      // Rate limiting is the only error we surface; unknown emails advance silently
+      if (msg.includes("RateLimited")) {
+        setError("Too many attempts. Please wait and try again.");
+        setIsLoading(false);
+        return;
+      }
     } finally {
       setIsLoading(false);
     }
+    setStep("verify");
   }
 
   async function handleResendCode() {
@@ -74,7 +76,7 @@ export default function ResetPasswordForm() {
       await signIn("password", { email, flow: "reset" });
       setResendMessage("A new code has been sent to your email.");
     } catch (err) {
-      setError(friendlyError(err, "request"));
+      setError(friendlyError(err));
     } finally {
       setIsLoading(false);
     }
@@ -104,7 +106,7 @@ export default function ResetPasswordForm() {
       await signOut();
       navigate("/login");
     } catch (err) {
-      setError(friendlyError(err, "verify"));
+      setError(friendlyError(err));
     } finally {
       setIsLoading(false);
     }
@@ -114,7 +116,7 @@ export default function ResetPasswordForm() {
     return (
       <form onSubmit={handleVerifyReset} className="space-y-5" noValidate>
         <p className="text-sm text-gray-600">
-          A reset code was sent to <span className="font-medium">{email}</span>.
+          If an account exists for <span className="font-medium">{email}</span>, you'll receive a 6-digit reset code shortly.
         </p>
 
         {/* Reset code */}
