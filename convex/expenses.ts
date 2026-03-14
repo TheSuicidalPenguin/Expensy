@@ -128,7 +128,12 @@ async function validateSubmission(
   if (!expense.categoryId) errors.push("Category is required.");
   if (expense.expenseDate === undefined) errors.push("Expense date is required.");
   if (expense.expenseDate !== undefined && expense.expenseDate > Date.now()) errors.push("Expense date cannot be in the future.");
-  if (!expense.amount || expense.amount <= 0) errors.push("Amount must be greater than 0.");
+  if (expense.amount === undefined || expense.amount <= 0) {
+    errors.push("Amount must be greater than 0.");
+  }
+  if (expense.amount !== undefined && !Number.isInteger(expense.amount)) {
+    errors.push("Amount must be an integer number of cents.");
+  }
   if (!expense.currencyId) errors.push("Currency is required.");
 
   if (expense.categoryId) {
@@ -194,6 +199,9 @@ export const createExpense = mutation({
     // Validate even in draft: amount must not be negative, date must not be future
     if (args.amount !== undefined && args.amount < 0) {
       throw new ConvexError("Amount cannot be negative.");
+    }
+    if (args.amount !== undefined && !Number.isInteger(args.amount)) {
+      throw new ConvexError("Amount must be an integer number of cents.");
     }
     if (args.expenseDate !== undefined && args.expenseDate > Date.now()) {
       throw new ConvexError("Expense date cannot be in the future.");
@@ -264,6 +272,9 @@ export const updateExpense = mutation({
     // Validate even in draft: amount must not be negative, date must not be future
     if (args.amount !== undefined && args.amount < 0) {
       throw new ConvexError("Amount cannot be negative.");
+    }
+    if (args.amount !== undefined && !Number.isInteger(args.amount)) {
+      throw new ConvexError("Amount must be an integer number of cents.");
     }
     if (args.expenseDate !== undefined && args.expenseDate > Date.now()) {
       throw new ConvexError("Expense date cannot be in the future.");

@@ -110,7 +110,8 @@ export default function ReviewExpensesPage() {
   );
 }
 
-function formatAmount(amount: number, currencyCode: string) {
+function formatAmount(amountInCents: number, currencyCode: string) {
+  const amount = amountInCents / 100;
   if (currencyCode === "USD") {
     return `${currencyCode} ${new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount)}`;
   }
