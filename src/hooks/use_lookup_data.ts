@@ -16,3 +16,11 @@ export function useCurrencies() {
 export function useCategories() {
   return useQuery(api.expenses.getCategories);
 }
+
+/**
+ * Returns all available expense statuses.
+ * Returns `undefined` while loading.
+ */
+export function useExpenseStatuses() {
+  return useQuery(api.expenses.getExpenseStatuses);
+}

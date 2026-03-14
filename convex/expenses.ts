@@ -454,6 +454,20 @@ export const getCurrencies = query({
 });
 
 /**
+ * Returns all available expense statuses.
+ * Requires authentication.
+ */
+export const getExpenseStatuses = query({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new ConvexError("Unauthorized");
+
+    return await ctx.db.query("expenseStatus").collect();
+  },
+});
+
+/**
  * Returns all available expense categories.
  * Requires authentication.
  */
@@ -475,6 +489,7 @@ export const getMyExpenses = query({
   args: {
     description: v.optional(v.string()),
     categoryId: v.optional(v.id("expenseCategories")),
+    statusName: v.optional(v.string()),
     expenseDateFrom: v.optional(v.number()),
     expenseDateTo: v.optional(v.number()),
     submissionDateFrom: v.optional(v.number()),
@@ -492,6 +507,15 @@ export const getMyExpenses = query({
       .collect();
 
     // Apply in-memory filters
+    if (args.statusName) {
+      const statusDoc = await ctx.db
+        .query("expenseStatus")
+        .withIndex("by_name", (q) => q.eq("name", args.statusName as string))
+        .unique();
+      expenses = statusDoc
+        ? expenses.filter((e) => e.statusId === statusDoc._id)
+        : [];
+    }
     if (args.description) {
       const search = args.description.toLowerCase();
       expenses = expenses.filter((e) =>
@@ -553,6 +577,7 @@ export const getExpensesForReview = query({
   args: {
     description: v.optional(v.string()),
     categoryId: v.optional(v.id("expenseCategories")),
+    statusName: v.optional(v.string()),
     submitterName: v.optional(v.string()),
     expenseDateFrom: v.optional(v.number()),
     expenseDateTo: v.optional(v.number()),

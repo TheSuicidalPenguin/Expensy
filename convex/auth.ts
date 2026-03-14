@@ -81,6 +81,17 @@ const PasswordResetOTP = Email({
   },
 });
 
+function validatePasswordRequirements(password: string) {
+  if (password.length < 8)
+    throw new Error("Password must be at least 8 characters.");
+  if (!/[A-Z]/.test(password))
+    throw new Error("Password must contain at least one uppercase letter.");
+  if (!/[0-9]/.test(password))
+    throw new Error("Password must contain at least one number.");
+  if (!/[^A-Za-z0-9]/.test(password))
+    throw new Error("Password must contain at least one special character.");
+}
+
 /**
  * Convex Auth configuration.
  *
@@ -94,16 +105,6 @@ const PasswordResetOTP = Email({
  * Only the Password provider is enabled. No OAuth providers are configured.
  * Users are pre-created by an admin; there is no self-signup flow.
  */
-function validatePasswordRequirements(password: string) {
-  if (password.length < 8)
-    throw new Error("Password must be at least 8 characters.");
-  if (!/[A-Z]/.test(password))
-    throw new Error("Password must contain at least one uppercase letter.");
-  if (!/[0-9]/.test(password))
-    throw new Error("Password must contain at least one number.");
-  if (!/[^A-Za-z0-9]/.test(password))
-    throw new Error("Password must contain at least one special character.");
-}
 
 export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
   providers: [Password({ reset: PasswordResetOTP, validatePasswordRequirements })],
