@@ -110,6 +110,7 @@ RESEND_FROM=Expensy <no-reply@yourdomain.com>
 SITE_URL=https://your-frontend-domain.com
 
 ```
+(You may also check the .env.example file for reference)
 
 ## Why This Architecture
 This setup keeps business rules explicit and data-driven:
