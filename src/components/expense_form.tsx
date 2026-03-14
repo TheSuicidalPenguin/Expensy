@@ -62,7 +62,11 @@ export default function ExpenseForm({ onClose, onSaved, expenseId }: Props) {
     setDescription(existingExpense.description ?? "");
     setCategoryId((existingExpense.categoryId as Id<"expenseCategories"> | undefined) ?? "");
     setOtherCategory(existingExpense.otherCategory ?? "");
-    setAmount(existingExpense.amount !== undefined ? String(existingExpense.amount) : "");
+    setAmount(
+      existingExpense.amount !== undefined
+        ? (existingExpense.amount / 100).toFixed(2)
+        : ""
+    );
     setCurrencyId((existingExpense.currencyId as Id<"currencies"> | undefined) ?? "");
     setExpenseDate(
       existingExpense.expenseDate
@@ -111,7 +115,8 @@ export default function ExpenseForm({ onClose, onSaved, expenseId }: Props) {
     if (!description.trim()) errors.push("Description is required.");
     if (!categoryId) errors.push("Category is required.");
     if (isOther && !otherCategory.trim()) errors.push("Please specify the category.");
-    if (!amount || parseFloat(amount) <= 0) errors.push("Amount must be greater than 0.");
+    const cents = parseAmountToCents(amount);
+    if (cents === null || cents <= 0) errors.push("Amount must be greater than 0.");
     if (!currencyId) errors.push("Currency is required.");
     if (!expenseDate) errors.push("Expense date is required.");
     if (expenseDate && new Date(expenseDate) > new Date()) errors.push("Expense date cannot be in the future.");
@@ -124,7 +129,9 @@ export default function ExpenseForm({ onClose, onSaved, expenseId }: Props) {
       description,
       ...(categoryId ? { categoryId } : {}),
       ...(isOther && otherCategory ? { otherCategory } : {}),
-      ...(amount ? { amount: parseFloat(amount) } : {}),
+      ...(parseAmountToCents(amount) !== null
+        ? { amount: parseAmountToCents(amount)! }
+        : {}),
       ...(currencyId ? { currencyId } : {}),
       ...(expenseDate ? { expenseDate: new Date(expenseDate).getTime() } : {}),
       ...(storageId ? { receipt: storageId } : {}),
@@ -137,7 +144,9 @@ export default function ExpenseForm({ onClose, onSaved, expenseId }: Props) {
       description,
       ...(categoryId ? { categoryId } : {}),
       ...(isOther && otherCategory ? { otherCategory } : {}),
-      ...(amount ? { amount: parseFloat(amount) } : {}),
+      ...(parseAmountToCents(amount) !== null
+        ? { amount: parseAmountToCents(amount)! }
+        : {}),
       ...(currencyId ? { currencyId } : {}),
       ...(expenseDate ? { expenseDate: new Date(expenseDate).getTime() } : {}),
       ...(storageId ? { receipt: storageId } : existingReceiptId ? { receipt: existingReceiptId } : {}),
@@ -147,7 +156,8 @@ export default function ExpenseForm({ onClose, onSaved, expenseId }: Props) {
   async function handleSaveDraft() {
     const draftErrors: string[] = [];
     if (!description.trim()) draftErrors.push("Description is required.");
-    if (amount && parseFloat(amount) < 0) draftErrors.push("Amount cannot be negative.");
+    const cents = parseAmountToCents(amount);
+    if (cents !== null && cents < 0) draftErrors.push("Amount cannot be negative.");
     if (expenseDate && new Date(expenseDate) > new Date()) draftErrors.push("Expense date cannot be in the future.");
     if (draftErrors.length > 0) {
       setValidationErrors(draftErrors);
@@ -541,3 +551,11 @@ function Field({
 
 const inputClass =
   "w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-400 disabled:bg-gray-50 disabled:text-gray-400 transition";
+
+function parseAmountToCents(value: string): number | null {
+  const normalized = value.trim();
+  if (!normalized) return null;
+  const amount = Number(normalized);
+  if (!Number.isFinite(amount)) return null;
+  return Math.round(amount * 100);
+}
