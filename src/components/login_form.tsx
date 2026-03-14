@@ -4,11 +4,9 @@ import { useAuthActions } from "@convex-dev/auth/react";
 
 function friendlyError(err: unknown): string {
   const msg = err instanceof Error ? err.message : "";
-  if (msg.includes("InvalidAccountId") || msg.includes("InvalidSecret") || msg.includes("InvalidPassword") || msg.includes("AccountNotFound") || msg.includes("NotFound"))
-    return "Invalid email or password.";
   if (msg.includes("RateLimited"))
     return "Too many attempts. Please wait and try again.";
-  return "Something went wrong. Please try again.";
+  return "Invalid email or password.";
 }
 
 export default function LoginForm() {
@@ -22,6 +20,8 @@ export default function LoginForm() {
 
   async function handleSignIn(e: FormEvent) {
     e.preventDefault();
+    if (!email.trim()) { setError("Email address is required."); return; }
+    if (!password) { setError("Password is required."); return; }
     setError(null);
     setIsLoading(true);
     try {

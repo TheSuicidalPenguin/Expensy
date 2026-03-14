@@ -106,6 +106,9 @@ VITE_CONVEX_URL=https://your-deployment.convex.cloud
 RESEND_API_KEY=your_resend_api_key
 RESEND_FROM=Expensy <no-reply@yourdomain.com>
 
+# Base URL of the frontend used in auth email links
+SITE_URL=https://your-frontend-domain.com
+
 ```
 
 ## Why This Architecture

@@ -108,9 +108,9 @@ export default function ExpenseFilters({ filters, onChange, showSubmissionDate =
         <div>
           <label className="block text-xs font-medium text-gray-400 mb-1">Expense Date</label>
           <div className="flex items-center gap-2">
-            <DateInput value={filters.expenseDateFrom} onChange={(v) => set("expenseDateFrom", v)} />
+            <DateInput value={filters.expenseDateFrom} onChange={(v) => set("expenseDateFrom", v)} placeholder="From date" />
             <span className="text-gray-300 text-xs shrink-0">to</span>
-            <DateInput value={filters.expenseDateTo} onChange={(v) => set("expenseDateTo", v)} />
+            <DateInput value={filters.expenseDateTo} onChange={(v) => set("expenseDateTo", v)} placeholder="To date" />
           </div>
         </div>
 
@@ -119,9 +119,9 @@ export default function ExpenseFilters({ filters, onChange, showSubmissionDate =
           <div>
             <label className="block text-xs font-medium text-gray-400 mb-1">Submission Date</label>
             <div className="flex items-center gap-2">
-              <DateInput value={filters.submissionDateFrom} onChange={(v) => set("submissionDateFrom", v)} />
+              <DateInput value={filters.submissionDateFrom} onChange={(v) => set("submissionDateFrom", v)} placeholder="From date" />
               <span className="text-gray-300 text-xs shrink-0">to</span>
-              <DateInput value={filters.submissionDateTo} onChange={(v) => set("submissionDateTo", v)} />
+              <DateInput value={filters.submissionDateTo} onChange={(v) => set("submissionDateTo", v)} placeholder="To date" />
             </div>
           </div>
         )}
@@ -160,7 +160,7 @@ export function toHookFilters(f: FilterState) {
  * Shows a styled read-only field; clicking it opens the native calendar via showPicker().
  * No keyboard editing possible.
  */
-function DateInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+function DateInput({ value, onChange, placeholder = "Pick a date" }: { value: string; onChange: (v: string) => void; placeholder?: string }) {
   const ref = useRef<HTMLInputElement>(null);
 
   const formatted = value
@@ -177,7 +177,7 @@ function DateInput({ value, onChange }: { value: string; onChange: (v: string) =
       className="relative w-full flex items-center justify-between rounded-lg border border-gray-200 px-3 py-1.5 bg-white cursor-pointer hover:border-gray-400 transition select-none"
     >
       <span className={`text-sm ${formatted ? "text-gray-700" : "text-gray-400"}`}>
-        {formatted || "Pick a date"}
+        {formatted || placeholder}
       </span>
       <svg className="w-4 h-4 text-gray-400 shrink-0 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
