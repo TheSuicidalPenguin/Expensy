@@ -35,9 +35,6 @@ export default function MyExpensesPage() {
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
-            <Link to="/dashboard" className="text-sm text-gray-400 hover:text-gray-600 transition-colors mb-1 inline-block">
-              ← Dashboard
-            </Link>
             <h1 className="text-xl font-semibold text-gray-900">My Expenses</h1>
           </div>
           <button

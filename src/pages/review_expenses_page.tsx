@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, Navigate } from "react-router-dom";
+import { Navigate } from "react-router-dom";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import ExpenseDetailModal from "../components/expense_detail_modal";
@@ -8,8 +8,10 @@ import type { Id } from "../../convex/_generated/dataModel";
 
 const STATUS_STYLES: Record<string, string> = {
   submitted: "bg-blue-100 text-blue-700",
-  approved: "bg-green-100 text-green-700",
-  rejected: "bg-red-100 text-red-700",
+};
+
+const STATUS_LABEL: Record<string, string> = {
+  submitted: "Under Review",
 };
 
 export default function ReviewExpensesPage() {
@@ -36,9 +38,6 @@ export default function ReviewExpensesPage() {
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
-            <Link to="/dashboard" className="text-sm text-gray-400 hover:text-gray-600 transition-colors mb-1 inline-block">
-              ← Dashboard
-            </Link>
             <h1 className="text-xl font-semibold text-gray-900">Expenses for Review</h1>
           </div>
         </div>
@@ -91,8 +90,8 @@ export default function ReviewExpensesPage() {
                     </td>
                     <td className={td}>
                       {expense.statusName && (
-                        <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${STATUS_STYLES[expense.statusName] ?? "bg-gray-100 text-gray-600"}`}>
-                          {expense.statusName}
+                        <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-medium ${STATUS_STYLES[expense.statusName] ?? "bg-gray-100 text-gray-600"}`}>
+                          {STATUS_LABEL[expense.statusName] ?? expense.statusName}
                         </span>
                       )}
                     </td>

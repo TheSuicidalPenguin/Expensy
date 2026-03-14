@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import { useCategories } from "../hooks/use_lookup_data";
 import type { Id } from "../../convex/_generated/dataModel";
 
@@ -85,19 +86,9 @@ export default function ExpenseFilters({ filters, onChange, showSubmissionDate =
         <div>
           <label className="block text-xs font-medium text-gray-400 mb-1">Expense Date</label>
           <div className="flex items-center gap-2">
-            <input
-              type="date"
-              value={filters.expenseDateFrom}
-              onChange={(e) => set("expenseDateFrom", e.target.value)}
-              className={inputClass}
-            />
+            <DateInput value={filters.expenseDateFrom} onChange={(v) => set("expenseDateFrom", v)} />
             <span className="text-gray-300 text-xs shrink-0">to</span>
-            <input
-              type="date"
-              value={filters.expenseDateTo}
-              onChange={(e) => set("expenseDateTo", e.target.value)}
-              className={inputClass}
-            />
+            <DateInput value={filters.expenseDateTo} onChange={(v) => set("expenseDateTo", v)} />
           </div>
         </div>
 
@@ -106,19 +97,9 @@ export default function ExpenseFilters({ filters, onChange, showSubmissionDate =
           <div>
             <label className="block text-xs font-medium text-gray-400 mb-1">Submission Date</label>
             <div className="flex items-center gap-2">
-              <input
-                type="date"
-                value={filters.submissionDateFrom}
-                onChange={(e) => set("submissionDateFrom", e.target.value)}
-                className={inputClass}
-              />
+              <DateInput value={filters.submissionDateFrom} onChange={(v) => set("submissionDateFrom", v)} />
               <span className="text-gray-300 text-xs shrink-0">to</span>
-              <input
-                type="date"
-                value={filters.submissionDateTo}
-                onChange={(e) => set("submissionDateTo", e.target.value)}
-                className={inputClass}
-              />
+              <DateInput value={filters.submissionDateTo} onChange={(v) => set("submissionDateTo", v)} />
             </div>
           </div>
         )}
@@ -149,6 +130,46 @@ export function toHookFilters(f: FilterState) {
     submissionDateFrom: f.submissionDateFrom ? new Date(f.submissionDateFrom).getTime() : undefined,
     submissionDateTo: f.submissionDateTo ? new Date(f.submissionDateTo + "T23:59:59").getTime() : undefined,
   };
+}
+
+/**
+ * Click-only date picker.
+ * Shows a styled read-only field; clicking it opens the native calendar via showPicker().
+ * No keyboard editing possible.
+ */
+function DateInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const ref = useRef<HTMLInputElement>(null);
+
+  const formatted = value
+    ? new Date(value + "T00:00:00").toLocaleDateString(undefined, {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      })
+    : "";
+
+  return (
+    <div
+      onClick={() => ref.current?.showPicker()}
+      className="relative w-full flex items-center justify-between rounded-lg border border-gray-200 px-3 py-1.5 bg-white cursor-pointer hover:border-gray-400 transition select-none"
+    >
+      <span className={`text-sm ${formatted ? "text-gray-700" : "text-gray-400"}`}>
+        {formatted || "Pick a date"}
+      </span>
+      <svg className="w-4 h-4 text-gray-400 shrink-0 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+          d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+      </svg>
+      <input
+        ref={ref}
+        type="date"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="absolute opacity-0 pointer-events-none w-0 h-0"
+        tabIndex={-1}
+      />
+    </div>
+  );
 }
 
 const inputClass =

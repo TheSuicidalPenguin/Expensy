@@ -5,6 +5,16 @@ import ResetPasswordPage from "./pages/reset_password_page";
 import DashboardPage from "./pages/dashboard_page";
 import MyExpensesPage from "./pages/my_expenses_page";
 import ReviewExpensesPage from "./pages/review_expenses_page";
+import Navbar from "./components/navbar";
+
+function AuthLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <>
+      <Navbar />
+      {children}
+    </>
+  );
+}
 
 /**
  * Root application router.
@@ -58,7 +68,7 @@ export default function App() {
                 <LoadingScreen />
               </AuthLoading>
               <Authenticated>
-                <DashboardPage />
+                <AuthLayout><DashboardPage /></AuthLayout>
               </Authenticated>
               <Unauthenticated>
                 <Navigate to="/login" replace />
@@ -73,7 +83,7 @@ export default function App() {
           element={
             <>
               <AuthLoading><LoadingScreen /></AuthLoading>
-              <Authenticated><MyExpensesPage /></Authenticated>
+              <Authenticated><AuthLayout><MyExpensesPage /></AuthLayout></Authenticated>
               <Unauthenticated><Navigate to="/login" replace /></Unauthenticated>
             </>
           }
@@ -85,7 +95,7 @@ export default function App() {
           element={
             <>
               <AuthLoading><LoadingScreen /></AuthLoading>
-              <Authenticated><ReviewExpensesPage /></Authenticated>
+              <Authenticated><AuthLayout><ReviewExpensesPage /></AuthLayout></Authenticated>
               <Unauthenticated><Navigate to="/login" replace /></Unauthenticated>
             </>
           }
